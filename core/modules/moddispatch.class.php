@@ -89,7 +89,7 @@ class moddispatch extends DolibarrModules
 		//							'workflow' => array('WORKFLOW_MODULE1_YOURACTIONTYPE_MODULE2'=>array('enabled'=>'! empty($conf->module1->enabled) && ! empty($conf->module2->enabled)', 'picto'=>'yourpicto@mymodule')) // Set here all workflow context managed by module
 		//	                       );
 		//$this->module_parts = array('hooks'=>array('ordersuppliercard','propalcard', 'ordercard', 'invoicecard'),'triggers' => 1);
-		$this->module_parts = array('triggers' => 1,'hooks'=>'expeditioncard');
+		$this->module_parts = array('triggers' => 1,'hooks'=>array('expeditioncard','ordersuppliercard'));
 
 		// Data directories to create when module is enabled.
 		// Example: this->dirs = array("/mymodule/temp");
@@ -121,7 +121,7 @@ class moddispatch extends DolibarrModules
         $this->tabs = array(
         	'delivery:+dispatch:Détail expédition:@expedition:/custom/dispatch/detail.php?id=__ID__'
         	,'supplier_order:+recepasset:Réception équipement:dispatch@dispacth:$conf->asset->enabled:/dispatch/reception.php?id=__ID__'
-		);
+		);
         
 		// where objecttype can be
 		// 'thirdparty'       to add a tab in third party view
