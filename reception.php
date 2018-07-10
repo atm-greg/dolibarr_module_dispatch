@@ -111,7 +111,7 @@
 
 	}
 	
-	$_POST['bt_create'] = true;
+//	$_POST['bt_create'] = true;
 	
 	if(isset($_FILES['file1']) && $_FILES['file1']['name']!='') {
 		$f1  =file($_FILES['file1']['tmp_name']);
@@ -154,7 +154,9 @@
 	elseif(isset($_POST['bt_create'])) {
 		$PDOdb=new TPDOdb;
 
-		$time_date_recep = Tools::get_time($_POST['date_recep']);
+		$date_recep = $_REQUEST['date_recep'];
+		if(empty($date_recep)) $date_recep=date('d/m/Y');
+		$time_date_recep = Tools::get_time($date_recep);
 			
 		//Tableau provisoir qui permettra la ventilation standard Dolibarr après la création des équipements
 		$TProdVentil = array();
@@ -188,7 +190,7 @@
 				$asset->load_asset_type($PDOdb);
 				
 				//Renseignement des extrafields
-				$asset->set_date('date_reception', $_REQUEST['date_recep']);
+				$asset->set_date('date_reception', $date_recep);
 				
 				foreach($commandefourn->lines as $line){
 					if($line->fk_product == $asset->fk_product){
@@ -206,8 +208,9 @@
 				$nb_year_garantie+=$prod->array_options['options_duree_garantie_fournisseur'];
 				
 				$asset->date_fin_garantie_fourn = strtotime('+'.$nb_year_garantie.'year', $time_date_recep);
-				$asset->date_fin_garantie_fourn = strtotime('+'.$extension_garantie.'year', $asset->date_fin_garantie_fourn);
+				$asset->date_fin_garantie_cli = strtotime('+'.$extension_garantie.'year', $asset->date_fin_garantie_fourn);
 				$asset->fk_soc = $commandefourn->socid;
+
 				$asset->fk_entrepot = GETPOST('id_entrepot');
 				
 				$societe = new Societe($db);
@@ -224,7 +227,6 @@
 			}
 			
 		}
-
 		//pre($commandefourn,true);exit;
 		
 		// Récupération des quantités déjà reçue
