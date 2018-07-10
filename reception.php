@@ -350,7 +350,7 @@ global $langs, $db;
 			<td>&nbsp;</td>
 		</tr>
 		
-	<?
+	<?php
 		if($commande->statut >= 5) $form->type_aff = "view";
 		$prod = new Product($db);
 
@@ -393,7 +393,7 @@ global $langs, $db;
 					</td>
 				</tr>
 				
-				<?
+				<?php
 				
 			}
 		}
@@ -414,7 +414,7 @@ global $langs, $db;
 			
 		
 	</table>
-	<?
+	<?php
 	if($commande->statut < 5 || $warning_asset){
 			
 		if($commande->statut < 5 ) echo $form->btsubmit('Enregistrer', 'bt_save');
@@ -423,7 +423,7 @@ global $langs, $db;
 		$form->type_aff = 'edit';	
 		?>
 		<hr />
-		<?
+		<?php
 		echo $form->calendrier('Date de réception', 'date_recep', time());
 		
 		$entrepot = new Entrepot($db);
