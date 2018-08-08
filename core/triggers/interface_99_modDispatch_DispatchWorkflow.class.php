@@ -181,12 +181,40 @@ class InterfaceDispatchWorkflow
 			}
 
 			dol_syslog("Trigger '".$this->name."' for action '$action' launched by ".__FILE__.". id=".$object->id);
+		} elseif ($action == 'SHIPPING_DELETE') {
+
+			dol_include_once('/dispatch/config.php');
+                        dol_include_once('/dispatch/class/dispatchdetail.class.php');
+
+                        $PDOdb = new TPDOdb();
+
+                        // Pour chaque ligne de l'expédition
+                        foreach($object->lines as $line) {
+                                // Chargement de l'objet detail dispatch relié à la ligne d'expédition
+                                $dd = new TDispatchDetail();
+
+                                $TIdExpeditionDet = TRequeteCore::get_id_from_what_you_want($PDOdb, MAIN_DB_PREFIX.'expeditiondet', array('fk_expedition' => $object->id, 'fk_origin_line' => $line->fk_origin_line));
+                                $idExpeditionDet = $TIdExpeditionDet[0];
+
+                                if(!empty($idExpeditionDet)) {
+                                        $dd->loadLines($PDOdb, $idExpeditionDet);
+
+                                        if($conf->asset->enabled){
+                                                // Création des mouvements de stock de flacon
+                                                foreach($dd->lines as $detail) {
+                                                        // Création du mouvement de stock standard
+                                                        $poids_destocke = $this->create_flacon_stock_mouvement($PDOdb, $detail, $object->ref, $object->fk_soc, '+');
+						}
+					}
+				}
+			}
+
 		}
 
 		return 0;
 	}
 
-	private function create_flacon_stock_mouvement(&$PDOdb, &$linedetail, $numref,$fk_soc = 0) {
+	private function create_flacon_stock_mouvement(&$PDOdb, &$linedetail, $numref,$fk_soc = 0,$sens='-') {
 		global $user, $langs, $conf;
 		dol_include_once('/asset/class/asset.class.php');
 		dol_include_once('/product/class/product.class.php');
@@ -208,10 +236,11 @@ class InterfaceDispatchWorkflow
 		//$asset->contenancereel_value = $asset->contenancereel_value - $poids_destocke;
 		$asset->fk_societe_localisation = $fk_soc;
 		//Vas destocker l'équipement mais pas dolibarr
-    	$asset->save($PDOdb, $user, $langs->trans("ShipmentValidatedInDolibarr",$numref), -$poids_destocke, false, 0, true);
+
+    	$asset->save($PDOdb, $user, $langs->trans('Shipment'.($sens==='-' ? 'Validated' : 'Deleted').'InDolibarr',$numref), $sens.$poids_destocke, false, 0, true);
     	
     	$stock = new TAssetStock;
-		$stock->mouvement_stock($PDOdb, $user, $asset->getId(), -$poids_destocke, $langs->trans("ShipmentValidatedInDolibarr",$numref), $linedetail->fk_expeditiondet);
+		$stock->mouvement_stock($PDOdb, $user, $asset->getId(), $sens.$poids_destocke, $langs->trans('Shipment'.($sens==='-' ? 'Validated' : 'Deleted').'InDolibarr',$numref), $linedetail->fk_expeditiondet);
 
 		return $poids_destocke;
 	}
