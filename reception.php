@@ -85,7 +85,7 @@
 		
 		//Si déjà existant => MAj
 		$PDOdb->Execute("SELECT rowid FROM ".MAIN_DB_PREFIX."commande_fournisseurdet_asset 
-						WHERE fk_product = ".$prodAsset->id." AND serial_number = ".$numserie." AND fk_commandedet = ".$fk_line);
+						WHERE fk_product = ".$prodAsset->id." AND serial_number = ".$PDOdb->quote($numserie)." AND fk_commandedet = ".$fk_line);
 		if($PDOdb->Get_line()){
 			$recepdetail->load($PDOdb,$PDOdb->Get_field('rowid'));
 		}
