@@ -56,22 +56,13 @@
 		return $TImport;
 	}
 	
-	function _addCommandedetLine(&$PDOdb,&$TImport,&$commandefourn,$refproduit,$numserie,$imei, $mfg, $firmware){
+	function _addCommandedetLine(&$PDOdb,&$TImport,&$commandefourn,$refproduit,$numserie,$imei, $mfg, $firmware, $k=null){
 		global $db;
 			
 		//Charge le produit associé à l'équipement
 		$prodAsset = new Product($db);
 		$prodAsset->fetch('',$refproduit);
 		//pre($prodAsset,true);
-		//Rempli le tableau utilisé pour l'affichage des lignes
-		$TImport[] =array(
-			'ref'=>$prodAsset->ref
-			,'numserie'=>$numserie
-			,'fk_product'=>$prodAsset->id
-			,'imei'=>$imei
-			,'mfg' => $mfg
-			,'firmware'=>$firmware
-		);
 		
 		//Récupération de l'indentifiant de la ligne d'expédition concerné par le produit
 		foreach($commandefourn->lines as $commandeline){
@@ -80,14 +71,24 @@
 			}
 		}
 		
+		if (empty($_POST['TLine'][$k]) === false) {
+			if ($numserie != $_POST['TLine'][$k]['numserie']) {
+				$line_update = true;
+			}
+		}
+		
 		//Sauvegarde (ajout/MAJ) des lignes de détail d'expédition
 		$recepdetail = new TRecepDetail;
 		
 		//Si déjà existant => MAj
 		$PDOdb->Execute("SELECT rowid FROM ".MAIN_DB_PREFIX."commande_fournisseurdet_asset 
-						WHERE fk_product = ".$prodAsset->id." AND serial_number = ".$PDOdb->quote($numserie)." AND fk_commandedet = ".$fk_line);
-		if($PDOdb->Get_line()){
-			$recepdetail->load($PDOdb,$PDOdb->Get_field('rowid'));
+						WHERE fk_product = ".$prodAsset->id." AND serial_number = ".$PDOdb->quote($numserie)." AND fk_commandedet = ".$fk_line." AND rowid = ".$_POST['TLine'][$k]['commande_fournisseurdet_asset']);
+		
+		if($PDOdb->Get_line() || $line_update){
+			$rowid = ($line_exists ? $_POST['TLine'][$k]['commande_fournisseurdet_asset'] : $PDOdb->Get_field('rowid'));
+			$recepdetail->load($PDOdb,$rowid);
+			
+			$lineFound = true;
 		}
 
 		$keys = array_keys($TImport);
@@ -106,6 +107,31 @@
 		$recepdetail->weight_reel_unit = 0;
 
 		$recepdetail->save($PDOdb);
+		
+		//Rempli le tableau utilisé pour l'affichage des lignes
+		if ($lineFound)
+		{
+			//var_dump($lineFound);
+			$TImport[$k] =array(
+			'ref'=>$prodAsset->ref
+			,'numserie'=>$numserie
+			,'fk_product'=>$prodAsset->id
+			,'imei'=>$imei
+			,'mfg' => $mfg
+			,'firmware'=>$firmware
+		);
+		}
+		else
+		{
+			$TImport[] =array(
+			'ref'=>$prodAsset->ref
+			,'numserie'=>$numserie
+			,'fk_product'=>$prodAsset->id
+			,'imei'=>$imei
+			,'mfg' => $mfg
+			,'firmware'=>$firmware
+		);
+		}
 		
 		return $TImport;
 
@@ -136,20 +162,74 @@
 		$recepdetail->delete($PDOdb);
 		
 		setEventMessage('Ligne supprimée');
+		
+		header('Location: '.$_SERVER['PHP_SELF'].'?id='.$commandefourn->id);
+		exit;
+		
 
 	}
 	elseif(isset($_POST['bt_save'])) {
 		foreach($_POST['TLine']  as $k=>$line) {
 			unset($TImport[(int)$k]);
-			$asset = new TAsset;
+			
+			// Modification
+			if (empty($line['fk_product']) === false) {
+				$fk_product = $line['fk_product'];
+			} else if (empty($_POST['TLine_new_fk_product']) === false) { // Ajout
+				$fk_product = $_POST['TLine_new_fk_product'];
+			} 
+			// Si aucun produit renseigné mais numéro de série renseigné
+			if ($k == -1 && $fk_product == -1 && empty($line['numserie']) === false) {
+				$error = true;
+				setEventMessage('Veuillez saisir un produit.', 'errors');
+			}
+			
+			
+			// Si un produit est renseigné, on sauvegarde
+			if (!$error && $fk_product > 0) {
+				$product = new Product($db);
+				$product->fetch($fk_product);
+				
+				//On vérifie que le produit est bien présent dans la commande
+				$find = false;
+				$quantityOrdered = 0;
+				foreach ($commandefourn->lines as $key => $l) {
+					if($l->fk_product == $product->id){
+						$find = true; 
+						$quantityOrdered += $l->qty;
+					}
+				}
+				
+				if (!$find) {
+					$error = true;
+					setEventMessage('Référence produit non présente dans la commande', 'errors');
+				}
+				
+				if (empty($product->id)) {
+					$error = true;
+					setEventMessage('Référence produit introuvable', 'errors');
+				}
+				
+				if (!$error) {
+					$TImport = _addCommandedetLine($PDOdb,$TImport,$commandefourn,$product->ref,$line['numserie'],$line['imei'], $line['mfg'], $line['firmware'], $k);
+				}
+			}
+			
+			$fk_product = -1; // Reset de la variable contenant la référence produit
+						
+//			$asset = new TAsset;
 			//if($asset->loadBy($PDOdb, $line['numserie'], 'serial_number')){
 			//pre($8RE,true);
-				$TImport = _addCommandedetLine($PDOdb,$TImport,$commandefourn,$_POST['search_TLine_new_fk_product'],$line['numserie'],$line['imei'], $line['mfg'], $line['firmware']);
+//				$TImport = _addCommandedetLine($PDOdb,$TImport,$commandefourn,$_POST['search_TLine_new_fk_product'],$line['numserie'],$line['imei'], $line['mfg'], $line['firmware'], $k);
 			//}
 
 		}
 
-		setEventMessage('Modifications enregistrées');
+		if (!$error) {
+			setEventMessage('Modifications enregistrées');
+			header('Location: '.$_SERVER['PHP_SELF'].'?id='.$commandefourn->id);
+			exit;
+		}
 	}
 	elseif(isset($_POST['bt_create'])) {
 		$PDOdb=new TPDOdb;
