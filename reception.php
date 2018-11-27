@@ -294,7 +294,7 @@
 				$asset->fk_entrepot = GETPOST('id_entrepot');
 				
 				$societe = new Societe($db);
-				$societe->fetch('','NOMADIC SOLUTIONS');
+				$societe->fetch('',!empty($conf->global->DISPATCH_DEFAULT_SOCIETE_LOCALISATION_NAME) ? $conf->global->DISPATCH_DEFAULT_SOCIETE_LOCALISATION_NAME : 'NOMADIC SOLUTIONS');
 				
 				$asset->fk_societe_localisation = $societe->id;
 				$asset->etat = 0; //En stock
