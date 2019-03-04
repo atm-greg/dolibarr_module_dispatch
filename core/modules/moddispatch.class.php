@@ -135,6 +135,7 @@ class moddispatch extends DolibarrModules
         	,'supplier_order:+recepasset:ReceptionTab:dispatch@dispatch:$conf->' . ATM_ASSET_NAME . '->enabled:/dispatch/reception.php?id=__ID__'
         	,'supplier_order:-dispatch'
         	,'order:+dispatchAsset:Détail équipement:dispatch@dispatch:$conf->' . ATM_ASSET_NAME . '->enabled:/dispatch/asset.php?id=__ID__&type_object=commande'
+        	,'bonderetour:+dispatchAsset:Détail équipement:dispatch@dispatch:$conf->' . ATM_ASSET_NAME . '->enabled:/dispatch/assetbdr.php?id=__ID__'
 		);
         
 		// where objecttype can be
