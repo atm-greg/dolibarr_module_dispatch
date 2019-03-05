@@ -22,6 +22,40 @@ $object->fetch($id);
 $dispatch=new TDispatch;
 $dispatch->loadByObject($PDOdb,$id,'bonderetour');
 
+$action = GETPOST('action');
+
+switch ($action) {
+	case 'save':
+
+		$TLine = GETPOST('TLine');
+		if(!empty($TLine[-1]['serial_number']) && (!empty($TLine[-1]['fk_object']) || GETPOST('type_object') === 'ticketsup'))
+			// Si type_object == ticketsup on n'empêche pas l'ajout si aucune ligne est sélectionnée car aucun sens d'associer un asset à un message sur un ticket
+		{
+
+			$asset = new TAsset;
+			$asset->loadReference($PDOdb, $TLine[-1]['serial_number']);
+
+			if($asset->getId()>0) {
+				$k=$dispatch->addChild($PDOdb, 'TDispatchAsset');
+				$dispatch->TDispatchAsset[$k]->fk_asset = $asset->getId();
+				$dispatch->TDispatchAsset[$k]->fk_object = $TLine[-1]['fk_object'];
+				$dispatch->TDispatchAsset[$k]->type_object = $type_object;
+				$dispatch->TDispatchAsset[$k]->asset = $asset;
+
+				$dispatch->save($PDOdb);
+			}
+
+		}
+
+		break;
+	case 'delete-line':
+		$k = (int)GETPOST('k');
+		$dispatch->TDispatchAsset[$k]->to_delete=true;
+
+		$dispatch->save($PDOdb);
+		break;
+}
+
 llxHeader();
 
 $head = bonderetour_prepare_head($object);
